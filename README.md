@@ -20,17 +20,17 @@ So this project is dedicated purely for this task.
 ```go
 func main() {
     util, err := NewConfigUtil("config.json")
-	if err != nil {...}
-	util.Backup()
+    if err != nil {...}
+    util.Backup()
 	
-	err = util.Update("example", "easy")
+    err = util.Update("example", "easy")
     if err != nil {...}
 
     err = util.Update("missing", "field", "oh no")
     if err != nil {
-		log.Print(err)
+        log.Print(err)
         util.Rollback()
-	}
+    }
 }
 ```
 
