@@ -39,9 +39,10 @@ func (cfg Config) DumpConfig(filename string) error {
 }
 
 type ConfigUtil struct {
-	Data           *Config
-	Filename       string
-	BackupFilename string
+	Data                 *Config
+	Filename             string
+	BackupFilename       string
+	AllowAddingNewFields bool
 }
 
 func NewConfigUtil(filename string) (*ConfigUtil, error) {
@@ -54,7 +55,7 @@ func NewConfigUtil(filename string) (*ConfigUtil, error) {
 
 func WrapConfigUtil(cfg *Config, filename string) (*ConfigUtil, error) {
 	dir, file := path.Split(filename)
-	return &ConfigUtil{cfg, filename, path.Join(dir, fmt.Sprintf(".backup_%s", file))}, nil
+	return &ConfigUtil{cfg, filename, path.Join(dir, fmt.Sprintf(".backup_%s", file)), false}, nil
 }
 
 func (util *ConfigUtil) Backup() error {
@@ -73,22 +74,23 @@ func (util *ConfigUtil) Rollback() (err error) {
 	return os.Rename(util.BackupFilename, util.Filename)
 }
 
-func Update(data map[string]interface{}, req ...interface{}) error {
+func Update(new bool, data map[string]interface{}, req ...interface{}) error {
 	if len(req) < 2 {
 		return nil
 	} else {
 		switch req[0].(type) {
 		case string:
-			_, ok := data[req[0].(string)]
-			if !ok {
-				return errors.New(fmt.Sprintf("key '%s' is not found", req[0].(string)))
+			if !new {
+				_, ok := data[req[0].(string)]
+				if !ok {
+					return errors.New(fmt.Sprintf("key '%s' is not found", req[0].(string)))
+				}
 			}
-
 			if len(req) == 2 {
 				data[req[0].(string)] = req[1]
 				return nil
 			} else {
-				return Update(data[req[0].(string)].(map[string]interface{}), req[1:]...)
+				return Update(new, data[req[0].(string)].(map[string]interface{}), req[1:]...)
 			}
 		default:
 			return errors.New(fmt.Sprintf("key '%v' isn't string", req[0]))
@@ -107,7 +109,7 @@ func (util *ConfigUtil) Update(req ...interface{}) error {
 		return err
 	}
 
-	err = Update(data, req...)
+	err = Update(util.AllowAddingNewFields, data, req...)
 	if err != nil {
 		return err
 	}
